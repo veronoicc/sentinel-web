@@ -155,8 +155,8 @@ export function parseTimezone(input: string): ParsedTimezone | null {
   if (bareMatch) return buildOffset(bareMatch[1], parseInt(bareMatch[2]), bareMatch[3] ? parseInt(bareMatch[3]) : 0)
 
   const numVal = Number(raw)
-  if (!Number.isNaN(numVal) && Number.isFinite(numVal) && Math.abs(numVal) <= 14) {
-    return buildOffset(numVal >= 0 ? "+" : "-", Math.abs(Math.trunc(numVal)), 0)
+  if (!Number.isNaN(numVal) && Number.isFinite(numVal) && Number.isInteger(numVal) && Math.abs(numVal) <= 14) {
+    return buildOffset(numVal >= 0 ? "+" : "-", Math.abs(numVal), 0)
   }
 
   const mapped = TZ_ABBREVIATIONS[raw.toUpperCase()]
@@ -183,9 +183,17 @@ export function getTimezoneOffsetMinutes(tz: string | null | undefined, atMs: nu
   if (tz === "UTC") return 0
   try {
     const d = new Date(atMs)
-    const utcD = new Date(d.toLocaleString("en-US", { timeZone: "UTC" }))
-    const tzD  = new Date(d.toLocaleString("en-US", { timeZone: tz }))
-    return Math.round((tzD.getTime() - utcD.getTime()) / 60_000)
+    const extractParts = (timeZone: string) => {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric", month: "numeric", day: "numeric",
+        hour: "numeric", minute: "numeric", second: "numeric",
+        hour12: false,
+      }).formatToParts(d)
+      const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value ?? "0", 10)
+      return Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") === 24 ? 0 : get("hour"), get("minute"), get("second"))
+    }
+    return Math.round((extractParts(tz) - extractParts("UTC")) / 60_000)
   } catch { return 0 }
 }
 
