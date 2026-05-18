@@ -215,3 +215,13 @@ export function formatDateTimeInTz(ts: number, tz: string | null | undefined): s
     }).format(new Date(ts))
   } catch { return formatDateTime(ts) }
 }
+
+export function formatDateInTz(ts: number, tz: string | null | undefined): string {
+  if (!tz) return formatDate(ts)
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      month: "short", day: "numeric",
+    }).format(new Date(ts))
+  } catch { return formatDate(ts) }
+}
